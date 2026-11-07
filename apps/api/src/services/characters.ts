@@ -12,6 +12,7 @@ import {
   assertOneActiveCharacter,
   assertSkillCap,
   getCharacterLevelProgress,
+  getSkillRankProgress,
 } from "@lifequest/domain";
 import { db } from "../db.js";
 import { HttpError } from "../lib/errors.js";
@@ -53,7 +54,12 @@ export async function getCharacterSheet(userId: string) {
     character: { ...character, levelProgress },
     attributes: attrs.map((attr) => ({
       ...attr,
-      skills: allSkills.filter((s) => s.attributeId === attr.id),
+      skills: allSkills
+        .filter((s) => s.attributeId === attr.id)
+        .map((s) => ({
+          ...s,
+          rankProgress: getSkillRankProgress(s.skillXp, s.rank, 0, config),
+        })),
     })),
   };
 }
@@ -292,7 +298,7 @@ export async function createSkill(
 export async function updateSkill(
   userId: string,
   skillId: string,
-  input: Partial<{ name: string; description: string }>,
+  input: Partial<{ name: string; description: string; sortOrder: number }>,
 ) {
   const existing = await db.query.skills.findFirst({
     where: and(eq(skills.id, skillId), eq(skills.userId, userId)),

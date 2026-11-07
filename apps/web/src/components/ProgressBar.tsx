@@ -1,9 +1,13 @@
+import clsx from "clsx";
+
 export function ProgressBar({
   ratio,
   label,
+  variant = "default",
 }: {
   ratio: number;
   label?: string;
+  variant?: "default" | "arcane";
 }) {
   const pct = Math.max(0, Math.min(100, Math.round(ratio * 100)));
   return (
@@ -21,7 +25,13 @@ export function ProgressBar({
         aria-valuemin={0}
         aria-valuemax={100}
       >
-        <div className="progress-fill" style={{ width: `${pct}%` }} />
+        <div
+          className={clsx(
+            "progress-fill",
+            variant === "arcane" && "progress-fill-arcane",
+          )}
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );

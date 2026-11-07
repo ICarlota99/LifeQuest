@@ -141,6 +141,7 @@ charactersRoutes.patch("/skills/:id", async (c) => {
       .object({
         name: z.string().min(1).max(80).optional(),
         description: z.string().max(2000).optional(),
+        sortOrder: z.number().int().min(0).max(100).optional(),
       })
       .parse(await c.req.json());
     const skill = await characterService.updateSkill(
