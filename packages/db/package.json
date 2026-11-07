@@ -1,0 +1,35 @@
+{
+  "name": "@lifequest/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "generate": "drizzle-kit generate",
+    "migrate": "drizzle-kit migrate",
+    "push": "drizzle-kit push",
+    "studio": "drizzle-kit studio",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "echo \"no db unit tests\"",
+    "lint": "echo \"no lint configured\""
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.4",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "dotenv": "^16.4.7",
+    "drizzle-kit": "^0.31.11",
+    "typescript": "^5.7.3"
+  }
+}

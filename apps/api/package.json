@@ -1,0 +1,30 @@
+{
+  "name": "@lifequest/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "echo \"no lint configured\""
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.8",
+    "@lifequest/db": "workspace:*",
+    "@lifequest/domain": "workspace:*",
+    "better-auth": "^1.2.3",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.7.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}
