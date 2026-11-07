@@ -1,6 +1,11 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { handleError } from "../lib/errors.js";
+import { handleError, HttpError } from "../lib/errors.js";
+import {
+  assertAllowedPortraitMime,
+  assertPortraitUploadSize,
+  convertPortraitToWebp,
+} from "../lib/portrait.js";
 import {
   requireAuth,
   type AuthedVariables,
@@ -14,6 +19,59 @@ charactersRoutes.get("/active/sheet", async (c) => {
   try {
     const sheet = await characterService.getCharacterSheet(c.get("userId"));
     return c.json({ sheet });
+  } catch (err) {
+    return handleError(c, err);
+  }
+});
+
+charactersRoutes.post("/:id/portrait", async (c) => {
+  try {
+    const body = await c.req.parseBody({ all: false });
+    const file = body.portrait;
+    if (!file || typeof file === "string") {
+      throw new HttpError(400, "Missing portrait file field.");
+    }
+
+    assertAllowedPortraitMime(file.type);
+    const arrayBuffer = await file.arrayBuffer();
+    const input = Buffer.from(arrayBuffer);
+    assertPortraitUploadSize(input.byteLength);
+
+    const webp = await convertPortraitToWebp(input);
+    const portrait = await characterService.setPortrait(
+      c.get("userId"),
+      c.req.param("id"),
+      webp,
+    );
+    return c.json({ portrait }, 201);
+  } catch (err) {
+    return handleError(c, err);
+  }
+});
+
+charactersRoutes.get("/:id/portrait", async (c) => {
+  try {
+    const { webp, updatedAt } = await characterService.getPortrait(
+      c.get("userId"),
+      c.req.param("id"),
+    );
+    return new Response(webp, {
+      status: 200,
+      headers: {
+        "Content-Type": "image/webp",
+        "Cache-Control": "private, max-age=86400",
+        "Last-Modified": updatedAt.toUTCString(),
+      },
+    });
+  } catch (err) {
+    return handleError(c, err);
+  }
+});
+
+charactersRoutes.delete("/:id/portrait", async (c) => {
+  try {
+    await characterService.clearPortrait(c.get("userId"), c.req.param("id"));
+    return c.json({ ok: true });
   } catch (err) {
     return handleError(c, err);
   }

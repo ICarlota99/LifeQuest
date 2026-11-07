@@ -1,10 +1,10 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { ManageSkillsModal } from "../components/ManageSkillsModal";
 import { ProgressBar } from "../components/ProgressBar";
-import { api } from "../lib/api";
+import { api, apiForm, mediaUrl } from "../lib/api";
 import { attributeVisual } from "../lib/attributes";
 
 const MAX_ATTRIBUTES = 6;
@@ -45,6 +45,8 @@ type SheetCharacter = {
   background: string;
   biography: string;
   level: number;
+  hasPortrait: boolean;
+  portraitUrl: string | null;
   levelProgress: {
     progressRatio: number;
     xpIntoLevel: number;
@@ -84,6 +86,7 @@ export function CharacterPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, AttrDraft>>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["sheet"],
@@ -171,6 +174,36 @@ export function CharacterPage() {
     onError: (err: Error) => setError(err.message),
   });
 
+  const uploadPortrait = useMutation({
+    mutationFn: async (file: File) => {
+      if (!character) throw new Error("No character");
+      const form = new FormData();
+      form.append("portrait", file);
+      return apiForm(`/api/characters/${character.id}/portrait`, form);
+    },
+    onSuccess: async () => {
+      setMessage("Portrait updated.");
+      setError(null);
+      await invalidate();
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  const removePortrait = useMutation({
+    mutationFn: async () => {
+      if (!character) throw new Error("No character");
+      return api(`/api/characters/${character.id}/portrait`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: async () => {
+      setMessage("Portrait removed.");
+      setError(null);
+      await invalidate();
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
   if (isLoading) {
     return <p className="text-steel">Unrolling character sheet…</p>;
   }
@@ -192,7 +225,11 @@ export function CharacterPage() {
   const busy =
     createAttribute.isPending ||
     deleteAttribute.isPending ||
-    bumpScore.isPending;
+    bumpScore.isPending ||
+    uploadPortrait.isPending ||
+    removePortrait.isPending;
+
+  const portraitSrc = mediaUrl(character?.portraitUrl);
 
   async function saveAllAttributes(e: FormEvent) {
     e.preventDefault();
@@ -232,16 +269,74 @@ export function CharacterPage() {
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold tracking-wide text-mist uppercase">
-            LifeQuest
-          </p>
-          <h1 className="font-display text-3xl text-forest md:text-4xl">
-            Character Sheet
-          </h1>
-          <p className="mt-1 text-steel">
-            {character.name} · {character.race} {character.className}
-          </p>
+        <div className="flex min-w-0 items-start gap-4">
+          <div className="shrink-0">
+            <div className="relative h-20 w-20 overflow-hidden rounded-full ring-2 ring-gold/60 shadow-md">
+              {portraitSrc ? (
+                <img
+                  src={portraitSrc}
+                  alt={`${character.name} portrait`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="grid h-full w-full place-items-center bg-arcane/25 font-display text-2xl text-forest">
+                  {character.name.slice(0, 1).toUpperCase()}
+                </div>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                setMessage(null);
+                uploadPortrait.mutate(file);
+              }}
+            />
+            <div className="mt-2 flex flex-col gap-1">
+              <button
+                className="text-xs font-semibold text-forest underline-offset-2 hover:underline"
+                type="button"
+                disabled={busy}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploadPortrait.isPending
+                  ? "Uploading…"
+                  : character.hasPortrait
+                    ? "Change photo"
+                    : "Add photo"}
+              </button>
+              {character.hasPortrait ? (
+                <button
+                  className="text-xs font-semibold text-crimson underline-offset-2 hover:underline"
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    if (!window.confirm("Remove this portrait?")) return;
+                    setMessage(null);
+                    removePortrait.mutate();
+                  }}
+                >
+                  Remove
+                </button>
+              ) : null}
+            </div>
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold tracking-wide text-mist uppercase">
+              LifeQuest
+            </p>
+            <h1 className="font-display text-3xl text-forest md:text-4xl">
+              Character Sheet
+            </h1>
+            <p className="mt-1 text-steel">
+              {character.name} · {character.race} {character.className}
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <button

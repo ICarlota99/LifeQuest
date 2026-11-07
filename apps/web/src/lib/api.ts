@@ -32,4 +32,24 @@ export async function api<T>(
   return data as T;
 }
 
+/** Multipart upload helper — do not set Content-Type (browser sets boundary). */
+export async function apiForm<T>(path: string, form: FormData): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    body: form,
+    credentials: "include",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(res.status, data.error ?? res.statusText);
+  }
+  return data as T;
+}
+
+export function mediaUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  return `${API_URL}${path}`;
+}
+
 export { API_URL };

@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  customType,
   integer,
   jsonb,
   pgTable,
@@ -9,6 +10,12 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { user } from "./auth.js";
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
 
 export const characters = pgTable(
   "characters",
@@ -26,6 +33,8 @@ export const characters = pgTable(
       .$type<Record<string, unknown>>()
       .notNull()
       .default({}),
+    portraitWebp: bytea("portrait_webp"),
+    portraitUpdatedAt: timestamp("portrait_updated_at", { withTimezone: true }),
     level: integer("level").notNull().default(1),
     characterXp: integer("character_xp").notNull().default(0),
     isActive: boolean("is_active").notNull().default(true),

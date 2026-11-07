@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { api } from "../lib/api";
+import { api, mediaUrl } from "../lib/api";
 import { authClient } from "../lib/auth-client";
 
 const links = [
@@ -18,7 +18,14 @@ const links = [
 
 type SheetChip = {
   sheet: {
-    character: { name: string; level: number; className: string };
+    character: {
+      id: string;
+      name: string;
+      level: number;
+      className: string;
+      hasPortrait: boolean;
+      portraitUrl: string | null;
+    };
   } | null;
 };
 
@@ -32,6 +39,7 @@ export function AppShell() {
   });
 
   const character = data?.sheet?.character;
+  const portraitSrc = mediaUrl(character?.portraitUrl);
 
   function closeMobile() {
     setMobileOpen(false);
@@ -45,8 +53,20 @@ export function AppShell() {
       </div>
 
       <div className="mx-4 mt-5 flex items-center gap-3 rounded-xl border border-gold/30 bg-sidebar-mid/80 px-3 py-3">
-        <div className="grid h-11 w-11 place-items-center rounded-full bg-arcane/40 font-display text-sm text-gold-bright ring-2 ring-gold/50">
-          {(character?.name ?? session?.user.name ?? "A").slice(0, 1).toUpperCase()}
+        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full ring-2 ring-gold/50">
+          {portraitSrc ? (
+            <img
+              src={portraitSrc}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="grid h-full w-full place-items-center bg-arcane/40 font-display text-sm text-gold-bright">
+              {(character?.name ?? session?.user.name ?? "A")
+                .slice(0, 1)
+                .toUpperCase()}
+            </div>
+          )}
         </div>
         <div className="min-w-0">
           <p className="truncate font-display text-sm text-parchment">

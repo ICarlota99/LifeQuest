@@ -21,7 +21,24 @@ import { getOrCreateActiveRuleSet } from "./progression-settings.js";
 export async function getActiveCharacter(userId: string) {
   return db.query.characters.findFirst({
     where: and(eq(characters.userId, userId), eq(characters.isActive, true)),
+    columns: { portraitWebp: false },
   });
+}
+
+function portraitMeta(character: {
+  id: string;
+  portraitUpdatedAt: Date | null;
+}) {
+  const hasPortrait = Boolean(character.portraitUpdatedAt);
+  const bust = character.portraitUpdatedAt
+    ? character.portraitUpdatedAt.getTime()
+    : 0;
+  return {
+    hasPortrait,
+    portraitUrl: hasPortrait
+      ? `/api/characters/${character.id}/portrait?v=${bust}`
+      : null as string | null,
+  };
 }
 
 export async function getCharacterSheet(userId: string) {
@@ -51,7 +68,11 @@ export async function getCharacterSheet(userId: string) {
   );
 
   return {
-    character: { ...character, levelProgress },
+    character: {
+      ...character,
+      ...portraitMeta(character),
+      levelProgress,
+    },
     attributes: attrs.map((attr) => ({
       ...attr,
       skills: allSkills
@@ -62,6 +83,75 @@ export async function getCharacterSheet(userId: string) {
         })),
     })),
   };
+}
+
+export async function setPortrait(
+  userId: string,
+  characterId: string,
+  webp: Buffer,
+) {
+  const existing = await db.query.characters.findFirst({
+    where: and(eq(characters.id, characterId), eq(characters.userId, userId)),
+    columns: { id: true },
+  });
+  if (!existing) throw new HttpError(404, "Character not found");
+
+  const now = new Date();
+  const [updated] = await db
+    .update(characters)
+    .set({
+      portraitWebp: webp,
+      portraitUpdatedAt: now,
+      updatedAt: now,
+    })
+    .where(eq(characters.id, characterId))
+    .returning({
+      id: characters.id,
+      portraitUpdatedAt: characters.portraitUpdatedAt,
+    });
+
+  return {
+    ...updated!,
+    ...portraitMeta({
+      id: characterId,
+      portraitUpdatedAt: updated!.portraitUpdatedAt,
+    }),
+  };
+}
+
+export async function getPortrait(userId: string, characterId: string) {
+  const row = await db.query.characters.findFirst({
+    where: and(eq(characters.id, characterId), eq(characters.userId, userId)),
+    columns: {
+      portraitWebp: true,
+      portraitUpdatedAt: true,
+    },
+  });
+  if (!row) throw new HttpError(404, "Character not found");
+  if (!row.portraitWebp || !row.portraitUpdatedAt) {
+    throw new HttpError(404, "Portrait not found");
+  }
+  return {
+    webp: row.portraitWebp,
+    updatedAt: row.portraitUpdatedAt,
+  };
+}
+
+export async function clearPortrait(userId: string, characterId: string) {
+  const existing = await db.query.characters.findFirst({
+    where: and(eq(characters.id, characterId), eq(characters.userId, userId)),
+    columns: { id: true },
+  });
+  if (!existing) throw new HttpError(404, "Character not found");
+
+  await db
+    .update(characters)
+    .set({
+      portraitWebp: null,
+      portraitUpdatedAt: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(characters.id, characterId));
 }
 
 export async function createCharacter(
@@ -157,7 +247,22 @@ export async function updateCharacter(
     .update(characters)
     .set({ ...input, updatedAt: new Date() })
     .where(eq(characters.id, characterId))
-    .returning();
+    .returning({
+      id: characters.id,
+      userId: characters.userId,
+      name: characters.name,
+      className: characters.className,
+      race: characters.race,
+      background: characters.background,
+      biography: characters.biography,
+      appearance: characters.appearance,
+      portraitUpdatedAt: characters.portraitUpdatedAt,
+      level: characters.level,
+      characterXp: characters.characterXp,
+      isActive: characters.isActive,
+      createdAt: characters.createdAt,
+      updatedAt: characters.updatedAt,
+    });
   return updated;
 }
 
