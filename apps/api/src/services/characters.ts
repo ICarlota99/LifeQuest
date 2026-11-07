@@ -6,11 +6,14 @@ import {
   skills,
 } from "@lifequest/db";
 import {
+  DEFAULT_ATTRIBUTE_COLOR,
   DEFAULT_ATTRIBUTE_PRESET,
   assertAttributeCap,
+  assertAttributeColorId,
   assertAttributeScore,
   assertOneActiveCharacter,
   assertSkillCap,
+  defaultColorForAttributeKey,
   getCharacterLevelProgress,
   getSkillRankProgress,
 } from "@lifequest/domain";
@@ -201,6 +204,7 @@ export async function createCharacter(
         key: preset.key,
         name: preset.name,
         description: preset.description,
+        color: defaultColorForAttributeKey(preset.key),
         score: preset.score,
         minValue: preset.min,
         maxValue: preset.max,
@@ -273,6 +277,7 @@ export async function createAttribute(
     key: string;
     name: string;
     description?: string;
+    color?: string;
     score?: number;
     minValue?: number;
     maxValue?: number;
@@ -301,6 +306,9 @@ export async function createAttribute(
   const maxValue = input.maxValue ?? 20;
   const score = input.score ?? 10;
   assertAttributeScore(score, minValue, maxValue);
+  const color = input.color
+    ? assertAttributeColorId(input.color)
+    : defaultColorForAttributeKey(input.key) || DEFAULT_ATTRIBUTE_COLOR;
 
   const [row] = await db
     .insert(attributes)
@@ -311,6 +319,7 @@ export async function createAttribute(
       key: input.key,
       name: input.name,
       description: input.description ?? "",
+      color,
       score,
       minValue,
       maxValue,
@@ -327,6 +336,7 @@ export async function updateAttribute(
     key: string;
     name: string;
     description: string;
+    color: string;
     score: number;
     minValue: number;
     maxValue: number;
@@ -341,10 +351,18 @@ export async function updateAttribute(
   const maxValue = input.maxValue ?? existing.maxValue;
   const score = input.score ?? existing.score;
   assertAttributeScore(score, minValue, maxValue);
+  const color =
+    input.color !== undefined
+      ? assertAttributeColorId(input.color)
+      : undefined;
 
   const [row] = await db
     .update(attributes)
-    .set({ ...input, updatedAt: new Date() })
+    .set({
+      ...input,
+      ...(color !== undefined ? { color } : {}),
+      updatedAt: new Date(),
+    })
     .where(eq(attributes.id, attributeId))
     .returning();
   return row!;

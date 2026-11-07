@@ -254,34 +254,64 @@
     font-size: 1.15rem;
   }
 
-  .hex-str {
-    --hex-bg: linear-gradient(160deg, #c2410c, #9a3412);
+  .hex-ember {
     background: linear-gradient(160deg, #c2410c, #9a3412);
   }
 
-  .hex-dex {
-    --hex-bg: linear-gradient(160deg, #0d9488, #0f766e);
+  .hex-jade {
     background: linear-gradient(160deg, #0d9488, #0f766e);
   }
 
-  .hex-con {
-    --hex-bg: linear-gradient(160deg, #16a34a, #15803d);
-    background: linear-gradient(160deg, #16a34a, #15803d);
+  .hex-moss {
+    background: linear-gradient(160deg, #3f6b3a, #2d4f29);
   }
 
-  .hex-int {
-    --hex-bg: linear-gradient(160deg, #2563eb, #1d4ed8);
+  .hex-azure {
     background: linear-gradient(160deg, #2563eb, #1d4ed8);
   }
 
-  .hex-wis {
-    --hex-bg: linear-gradient(160deg, #7c3aed, #6d28d9);
-    background: linear-gradient(160deg, #7c3aed, #6d28d9);
+  .hex-amethyst {
+    background: linear-gradient(160deg, #7c3aed, #5b21b6);
   }
 
-  .hex-cha {
-    --hex-bg: linear-gradient(160deg, #ca8a04, #a16207);
+  .hex-gold {
     background: linear-gradient(160deg, #ca8a04, #a16207);
+  }
+
+  .hex-crimson {
+    background: linear-gradient(160deg, #9f1239, #7f1d1d);
+  }
+
+  .hex-steel {
+    background: linear-gradient(160deg, #64748b, #475569);
+  }
+
+  .hex-bronze {
+    background: linear-gradient(160deg, #b45309, #92400e);
+  }
+
+  .hex-midnight {
+    background: linear-gradient(160deg, #312e81, #1e1b4b);
+  }
+
+  .color-swatch {
+    width: 1.65rem;
+    height: 1.65rem;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+    transition: transform 140ms ease, border-color 140ms ease;
+  }
+
+  .color-swatch:hover {
+    transform: scale(1.08);
+  }
+
+  .color-swatch-selected {
+    border-color: var(--color-ink);
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--color-gold) 70%, transparent),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.3);
   }
 
   .modal-backdrop {

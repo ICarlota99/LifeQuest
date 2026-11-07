@@ -5,7 +5,13 @@ import clsx from "clsx";
 import { ManageSkillsModal } from "../components/ManageSkillsModal";
 import { ProgressBar } from "../components/ProgressBar";
 import { api, apiForm, mediaUrl } from "../lib/api";
-import { attributeVisual, normalizeAttrCode } from "../lib/attributes";
+import {
+  ATTRIBUTE_COLORS,
+  attributeVisual,
+  normalizeAttrCode,
+  resolveAttributeColor,
+  type AttributeColorId,
+} from "../lib/attributes";
 
 const MAX_ATTRIBUTES = 6;
 
@@ -31,6 +37,7 @@ type Attribute = {
   name: string;
   key: string;
   description: string;
+  color: string;
   score: number;
   minValue: number;
   maxValue: number;
@@ -64,6 +71,7 @@ type SheetResponse = {
 type AttrDraft = {
   name: string;
   code: string;
+  color: AttributeColorId;
   description: string;
   score: number;
 };
@@ -102,6 +110,7 @@ export function CharacterPage() {
       next[attr.id] = {
         name: attr.name,
         code: normalizeAttrCode(attr.key).toUpperCase(),
+        color: resolveAttributeColor(attr.color, attr.key),
         description: attr.description,
         score: attr.score,
       };
@@ -137,6 +146,7 @@ export function CharacterPage() {
           characterId,
           name,
           key: code,
+          color: "steel",
           description: "",
           score: 10,
         }),
@@ -247,6 +257,7 @@ export function CharacterPage() {
             body: JSON.stringify({
               name: draft.name,
               key: code,
+              color: draft.color,
               description: draft.description,
               score: draft.score,
             }),
@@ -416,10 +427,11 @@ export function CharacterPage() {
               const draft = drafts[attr.id] ?? {
                 name: attr.name,
                 code: normalizeAttrCode(attr.key).toUpperCase(),
+                color: resolveAttributeColor(attr.color, attr.key),
                 description: attr.description,
                 score: attr.score,
               };
-              const visual = attributeVisual(draft.code || attr.key);
+              const visual = attributeVisual(draft.code || attr.key, draft.color);
               return (
                 <li
                   key={attr.id}
@@ -553,6 +565,38 @@ export function CharacterPage() {
                           }
                         />
                       </div>
+                      <div>
+                        <p className="label">Color</p>
+                        <div
+                          className="flex flex-wrap gap-2"
+                          role="radiogroup"
+                          aria-label={`${attr.name} color`}
+                        >
+                          {ATTRIBUTE_COLORS.map((swatch) => (
+                            <button
+                              key={swatch.id}
+                              type="button"
+                              role="radio"
+                              aria-checked={draft.color === swatch.id}
+                              aria-label={swatch.label}
+                              title={swatch.label}
+                              className={clsx(
+                                "color-swatch",
+                                draft.color === swatch.id && "color-swatch-selected",
+                              )}
+                              style={{
+                                background: `linear-gradient(160deg, ${swatch.from}, ${swatch.to})`,
+                              }}
+                              onClick={() =>
+                                setDrafts((d) => ({
+                                  ...d,
+                                  [attr.id]: { ...draft, color: swatch.id },
+                                }))
+                              }
+                            />
+                          ))}
+                        </div>
+                      </div>
                       {attributes.length > 1 ? (
                         <button
                           className="text-sm font-semibold text-crimson"
@@ -590,7 +634,7 @@ export function CharacterPage() {
             </div>
             <ul className="space-y-2.5">
               {attributes.map((attr) => {
-                const visual = attributeVisual(attr.key);
+                const visual = attributeVisual(attr.key, attr.color);
                 const isSelected = attr.id === selectedId;
                 return (
                   <li key={attr.id}>
@@ -671,10 +715,10 @@ export function CharacterPage() {
                   <span
                     className={clsx(
                       "hex-icon hex-icon-lg",
-                      attributeVisual(selected.key).hexClass,
+                      attributeVisual(selected.key, selected.color).hexClass,
                     )}
                   >
-                    {attributeVisual(selected.key).label}
+                    {attributeVisual(selected.key, selected.color).label}
                   </span>
                   <div>
                     <h2 className="font-display text-2xl text-forest">
@@ -773,7 +817,7 @@ export function CharacterPage() {
                   <span
                     className={clsx(
                       "hex-icon !h-9 !w-9 !text-[0.65rem]",
-                      attributeVisual(selected.key).hexClass,
+                      attributeVisual(selected.key, selected.color).hexClass,
                     )}
                   >
                     {skill.name.slice(0, 2).toUpperCase()}

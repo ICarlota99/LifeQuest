@@ -1,3 +1,8 @@
+import {
+  ATTRIBUTE_COLOR_IDS,
+  isAttributeColorId,
+  type AttributeColorId,
+} from "./attribute-colors.js";
 import { MAX_ATTRIBUTES, MAX_SKILLS_PER_ATTRIBUTE } from "./types.js";
 
 export class DomainValidationError extends Error {
@@ -5,6 +10,15 @@ export class DomainValidationError extends Error {
     super(message);
     this.name = "DomainValidationError";
   }
+}
+
+export function assertAttributeColorId(value: string): AttributeColorId {
+  if (!isAttributeColorId(value)) {
+    throw new DomainValidationError(
+      `Attribute color must be one of: ${ATTRIBUTE_COLOR_IDS.join(", ")}.`,
+    );
+  }
+  return value;
 }
 
 export function assertAttributeCap(currentCount: number, adding = 1): void {

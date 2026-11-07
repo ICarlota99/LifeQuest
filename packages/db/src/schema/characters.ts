@@ -63,6 +63,7 @@ export const attributes = pgTable("attributes", {
   key: text("key").notNull(),
   name: text("name").notNull(),
   description: text("description").notNull().default(""),
+  color: text("color").notNull().default("steel"),
   score: integer("score").notNull().default(10),
   minValue: integer("min_value").notNull().default(1),
   maxValue: integer("max_value").notNull().default(20),

@@ -7,4 +7,5 @@ export * from "./rank-up.js";
 export * from "./caps.js";
 export * from "./boss.js";
 export * from "./character-preset.js";
+export * from "./attribute-colors.js";
 export * from "./rewards.js";
