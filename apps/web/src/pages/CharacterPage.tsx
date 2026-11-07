@@ -5,7 +5,7 @@ import clsx from "clsx";
 import { ManageSkillsModal } from "../components/ManageSkillsModal";
 import { ProgressBar } from "../components/ProgressBar";
 import { api, apiForm, mediaUrl } from "../lib/api";
-import { attributeVisual } from "../lib/attributes";
+import { attributeVisual, normalizeAttrCode } from "../lib/attributes";
 
 const MAX_ATTRIBUTES = 6;
 
@@ -63,20 +63,10 @@ type SheetResponse = {
 
 type AttrDraft = {
   name: string;
+  code: string;
   description: string;
   score: number;
 };
-
-function slugifyKey(name: string) {
-  return (
-    name
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_|_$/g, "")
-      .slice(0, 32) || "stat"
-  );
-}
 
 export function CharacterPage() {
   const qc = useQueryClient();
@@ -111,6 +101,7 @@ export function CharacterPage() {
     for (const attr of attributes) {
       next[attr.id] = {
         name: attr.name,
+        code: normalizeAttrCode(attr.key).toUpperCase(),
         description: attr.description,
         score: attr.score,
       };
@@ -131,12 +122,21 @@ export function CharacterPage() {
   const createAttribute = useMutation({
     mutationFn: (characterId: string) => {
       const name = "New Stat";
+      const used = new Set(attributes.map((a) => normalizeAttrCode(a.key)));
+      let code = "new";
+      for (let i = 1; i <= MAX_ATTRIBUTES; i += 1) {
+        const candidate = normalizeAttrCode(`n${i}`);
+        if (!used.has(candidate)) {
+          code = candidate;
+          break;
+        }
+      }
       return api("/api/characters/attributes", {
         method: "POST",
         body: JSON.stringify({
           characterId,
           name,
-          key: slugifyKey(`${name}_${Date.now()}`),
+          key: code,
           description: "",
           score: 10,
         }),
@@ -240,11 +240,13 @@ export function CharacterPage() {
         attributes.map((attr) => {
           const draft = drafts[attr.id];
           if (!draft) return Promise.resolve();
+          // Keep the existing 3-letter code unless the user edited it.
+          const code = normalizeAttrCode(draft.code, normalizeAttrCode(attr.key));
           return api(`/api/characters/attributes/${attr.id}`, {
             method: "PATCH",
             body: JSON.stringify({
               name: draft.name,
-              key: slugifyKey(attr.key || draft.name),
+              key: code,
               description: draft.description,
               score: draft.score,
             }),
@@ -413,10 +415,11 @@ export function CharacterPage() {
             {attributes.map((attr) => {
               const draft = drafts[attr.id] ?? {
                 name: attr.name,
+                code: normalizeAttrCode(attr.key).toUpperCase(),
                 description: attr.description,
                 score: attr.score,
               };
-              const visual = attributeVisual(attr.key);
+              const visual = attributeVisual(draft.code || attr.key);
               return (
                 <li
                   key={attr.id}
@@ -427,7 +430,7 @@ export function CharacterPage() {
                       {visual.label}
                     </span>
                     <div className="min-w-0 flex-1 space-y-3">
-                      <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                      <div className="grid gap-3 sm:grid-cols-[1fr_5rem_auto]">
                         <div>
                           <label className="label" htmlFor={`edit-name-${attr.id}`}>
                             Name
@@ -441,6 +444,33 @@ export function CharacterPage() {
                               setDrafts((d) => ({
                                 ...d,
                                 [attr.id]: { ...draft, name: e.target.value },
+                              }))
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="label" htmlFor={`edit-code-${attr.id}`}>
+                            Code
+                          </label>
+                          <input
+                            id={`edit-code-${attr.id}`}
+                            className="input text-center font-display uppercase tracking-wider"
+                            required
+                            maxLength={3}
+                            minLength={1}
+                            pattern="[A-Za-z0-9]{1,3}"
+                            title="1–3 letters or numbers"
+                            value={draft.code}
+                            onChange={(e) =>
+                              setDrafts((d) => ({
+                                ...d,
+                                [attr.id]: {
+                                  ...draft,
+                                  code: e.target.value
+                                    .replace(/[^a-zA-Z0-9]/g, "")
+                                    .slice(0, 3)
+                                    .toUpperCase(),
+                                },
                               }))
                             }
                           />
